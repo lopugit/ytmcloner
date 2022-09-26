@@ -1,0 +1,20 @@
+{
+  "name": "ytmcloner",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.27.2",
+    "blessed": "^0.1.81",
+    "dotenv": "^16.0.2",
+    "fs": "^0.0.1-security",
+    "lodash": "^4.17.21",
+    "youtube-mp3-downloader": "^0.7.11",
+    "ytdl-core": "^4.11.2"
+  }
+}
