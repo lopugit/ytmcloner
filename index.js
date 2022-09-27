@@ -58,7 +58,7 @@ async function run() {
     }
 
     setInterval(() => {
-      console.log('Stats: downloaded', stats.downloaded, 'of', stats.total - stats.skipped, 'with', stats.skipped, 'skipped', stats.total, 'songs found')
+      console.log('Stats:', stats.downloaded, 'downloaded out of', ((stats.total - stats.skipped) - stats.errors), ',', stats.skipped, 'skipped,', stats.errors, 'errors,', stats.total, 'total songs, ', stats.skipped + stats.downloaded, 'stored')
     }, 2500)
 
     const YD = new YoutubeMp3Downloader({
@@ -80,12 +80,16 @@ async function run() {
     })
 
     YD.on("finished", function (err, data) {
-      const song = songMap[data.videoId]
-      const safePlaylistName = song.playlist.replace(/\//gi, '-')
-      const path = createPathFromSong(song)
-      console.log('Finished downloading, moving to', path);
-      fs.renameSync(data.file, path)
-      stats.downloaded++
+      try {
+        const song = songMap[data.videoId]
+        const path = createPathFromSong(song)
+        console.log('Finished downloading, moving to', path);
+        fs.renameSync(data.file, path)
+        stats.downloaded++
+      } catch (err) {
+        console.error(err)
+        stats.errors++
+      }
     })
 
     for (const song of songs) {
@@ -110,7 +114,8 @@ async function run() {
 
 function createPathFromSong(song) {
   const safePlaylistName = song.playlist.replace(/\//gi, '-')
-  return `${config.outputDir}/${safePlaylistName}/${song.title}.mp3`
+  const safeSongTitle = song.title.replace(/\//gi, '-')
+  return `${config.outputDir}/${safePlaylistName}/${safeSongTitle}.mp3`
 }
 
 async function getPlaylistItems(playlist, items = [], pageToken = null) {

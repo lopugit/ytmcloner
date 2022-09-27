@@ -4,3 +4,4 @@ playlistItems.json
 songMap.json
 songs.json
 config.js
+.env
