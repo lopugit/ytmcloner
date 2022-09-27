@@ -4,6 +4,7 @@ module.exports = {
   tmpDir: '/Users/lopu/things/git/lopugit/ytmcloner/data/tmp',
   useDump: false,
   download: true,
+  useWhitelist: true,
   whitelist: [
     'DJ DODA Phat in an electronic way',
     'DJ DODA Feel good / Love',

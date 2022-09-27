@@ -18,17 +18,22 @@ async function run() {
     const songs = []
     const songMap = {}
     for (const playlist of playlists) {
-      if (config.whitelist.includes(playlist.snippet.title)) {
+      const scrapePlaylist = config.whitelist && config.whitelist.length ? config.whitelist.includes(playlist.snippet.title) : true
+      if (scrapePlaylist) {
         const items = await getPlaylistItems(playlist)
         playlistItems[playlist.snippet.title] = items
         items.forEach(item => {
-          const song = {
-            title: item.snippet.title,
-            id: item.contentDetails.videoId,
-            playlist: playlist.snippet.title,
+          let song = songs.find(song => song.id === item.contentDetails.videoId)
+          if (!song) {
+            song = {
+              title: item.snippet.title,
+              id: item.contentDetails.videoId,
+              playlists: [],
+            }
+            songs.push(song)
           }
+          song.playlists.push(playlist.snippet.title)
           songMap[song.id] = song
-          songs.push(song)
         })
       }
     }
@@ -54,11 +59,16 @@ async function run() {
       downloaded: 0,
       skipped: 0,
       errors: 0,
-      total: songs.length
+      total: songs.reduce((total, song) => total + song.playlists.length, 0)
     }
 
     setInterval(() => {
-      console.log('Stats:', stats.downloaded, 'downloaded out of', ((stats.total - stats.skipped) - stats.errors), ',', stats.skipped, 'skipped,', stats.errors, 'errors,', stats.total, 'total songs, ', stats.skipped + stats.downloaded, 'stored')
+      const totalToDownload = ((stats.total - stats.skipped) - stats.errors)
+      console.log('Stats:', stats.downloaded, 'downloaded out of', totalToDownload, ',', stats.skipped, 'skipped,', stats.errors, 'errors,', stats.total, 'total songs, ', stats.skipped + stats.downloaded, 'stored')
+      if (stats.downloaded === totalToDownload) {
+        console.log('Finished downloading, exiting...')
+        process.exit(0)
+      }
     }, 2500)
 
     const YD = new YoutubeMp3Downloader({
@@ -72,7 +82,11 @@ async function run() {
 
     YD.on("error", function (error) {
       stats.errors++
-      // console.error(error);
+      if (error.statusCode === 410) {
+        console.error('Error: Video is no longer available');
+      } else if (typeof error === 'string') {
+        console.log(error.trim())
+      }
     })
 
     YD.on("progress", function (progress) {
@@ -81,11 +95,16 @@ async function run() {
 
     YD.on("finished", function (err, data) {
       try {
-        const song = songMap[data.videoId]
-        const path = createPathFromSong(song)
-        console.log('Finished downloading, moving to', path);
-        fs.renameSync(data.file, path)
-        stats.downloaded++
+        setTimeout(() => {
+          const song = songMap[data.videoId]
+          const paths = createPathsFromSong(song)
+          for (const path of paths) {
+            console.log('Finished downloading, moving to', path);
+            fs.copyFileSync(data.file, path)
+          }
+          fs.unlinkSync(data.file)
+          stats.downloaded++
+        }, 10000)
       } catch (err) {
         console.error(err)
         stats.errors++
@@ -94,26 +113,40 @@ async function run() {
 
     for (const song of songs) {
 
-      const safePlaylistName = song.playlist.replace(/\//gi, '-')
+      const songPaths = createPathsFromSong(song)
+      let downloadStarted = false
+      songPaths.forEach((path, i) => {
+        const safePlaylistName = song.playlists[i].replace(/\//gi, '-')
 
-      if (!fs.existsSync(config.outputDir + '/' + safePlaylistName)) {
-        fs.mkdirSync(config.outputDir + '/' + safePlaylistName, { recursive: true })
-      }
+        if (!fs.existsSync(config.outputDir + '/' + safePlaylistName)) {
+          fs.mkdirSync(config.outputDir + '/' + safePlaylistName, { recursive: true })
+        }
 
-      if (!fs.existsSync(createPathFromSong(song))) {
-        YD.download(song.id, `${song.id}.mp3`);
-      } else {
-        // console.log('Already downloaded', song.title, createPathFromSong(song))
-        stats.skipped++
-      }
+        const songExists = fs.existsSync(path)
+        if (!songExists && !downloadStarted) {
+          downloadStarted = true
+          YD.download(song.id, `${song.id}.mp3`);
+        } else {
+          // console.log('Already downloaded', song.title, createPathFromSong(song))
+          stats.skipped++
+        }
+      })
 
     }
   }
 
 }
 
-function createPathFromSong(song) {
-  const safePlaylistName = song.playlist.replace(/\//gi, '-')
+function createPathsFromSong(song) {
+  const paths = []
+  song.playlists.forEach(playlist => {
+    const path = createPathFromSong(song, playlist)
+    paths.push(path)
+  })
+  return paths
+}
+function createPathFromSong(song, playlist) {
+  const safePlaylistName = playlist.replace(/\//gi, '-')
   const safeSongTitle = song.title.replace(/\//gi, '-')
   return `${config.outputDir}/${safePlaylistName}/${safeSongTitle}.mp3`
 }
