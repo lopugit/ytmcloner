@@ -1,9 +1,12 @@
+// const cookie = require('./cookie.js')
+
 module.exports = {
   ffmpegPath: "/usr/local/bin/ffmpeg",
   outputDir: '/Users/lopu/things/git/lopugit/ytmcloner/data/downloads',
   tmpDir: '/Users/lopu/things/git/lopugit/ytmcloner/data/tmp',
   useDump: false,
   download: true,
+  // cookie,
   useWhitelist: true,
   whitelist: [
     'DJ DODA Phat in an electronic way',

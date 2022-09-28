@@ -4,6 +4,10 @@ const { get } = require('lodash')
 const fs = require('fs')
 const config = require('./config.js')
 const YoutubeMp3Downloader = require("youtube-mp3-downloader");
+const ytdl = require('ytdl-core')
+const promiseQueue = require('promise-queue')
+const cp = require('child_process')
+const ffmpeg = require('ffmpeg-static')
 
 run()
 
@@ -71,45 +75,7 @@ async function run() {
       }
     }, 2500)
 
-    const YD = new YoutubeMp3Downloader({
-      "ffmpegPath": config.ffmpegPath || "/usr/local/bin/ffmpeg",        // FFmpeg binary location
-      "outputPath": config.tmpDir,    // Output file location (default: the home directory)
-      "youtubeVideoQuality": "highestaudio",  // Desired video quality (default: highestaudio)
-      "queueParallelism": 9,                  // Download parallelism (default: 1)
-      "progressTimeout": 10000,                // Interval in ms for the progress reports (default: 1000)
-      "allowWebm": true                      // Enable download from WebM sources (default: false)
-    });
-
-    YD.on("error", function (error) {
-      stats.errors++
-      if (error.statusCode === 410) {
-        console.error('Error: Video is no longer available');
-      } else if (typeof error === 'string') {
-        console.log(error.trim())
-      }
-    })
-
-    YD.on("progress", function (progress) {
-      console.log('Downloaded', Math.round(progress.progress.percentage) + '%', 'of', progress.videoId);
-    })
-
-    YD.on("finished", function (err, data) {
-      try {
-        setTimeout(() => {
-          const song = songMap[data.videoId]
-          const paths = createPathsFromSong(song)
-          for (const path of paths) {
-            console.log('Finished downloading, moving to', path);
-            fs.copyFileSync(data.file, path)
-          }
-          fs.unlinkSync(data.file)
-          stats.downloaded++
-        }, 10000)
-      } catch (err) {
-        console.error(err)
-        stats.errors++
-      }
-    })
+    const queue = new promiseQueue(5, Infinity)
 
     for (const song of songs) {
 
@@ -125,7 +91,78 @@ async function run() {
         const songExists = fs.existsSync(path)
         if (!songExists && !downloadStarted) {
           downloadStarted = true
-          YD.download(song.id, `${song.id}.mp3`);
+          const path = config.tmpDir + '/' + song.id + '.mp3'
+          queue.add(() => {
+            return new Promise(resolve => {
+              try {
+                const audio = ytdl(song.id, {
+                  quality: 'highestaudio',
+                  ...(config.cookie ? {
+                    requestOptions: {
+                      headers: {
+                        cookie: config.cookie
+                      }
+                    }
+                  } : {})
+                })
+                  .on('response', (res) => {
+                    console.log('Started downloading song', song.title, song.id, 'for playlists', song.playlists.join(', '))
+                  })
+                  .on('error', err => {
+                    // console.error('Error downloading song', song.title, song.id, 'for playlists', song.playlists.join(', '), err)
+                    stats.errors++
+                    resolve()
+                  })
+                const ffmpegProcess = cp.spawn(ffmpeg, [
+                  // Remove ffmpeg's console spamming
+                  '-loglevel', '8', '-hide_banner',
+                  // Redirect/Enable progress messages
+                  '-progress', 'pipe:3',
+                  // Set inputs
+                  '-i', 'pipe:4',
+                  // Map audio & video from streams
+                  '-map', '0:a',
+                  // Keep encoding
+                  '-c:v', 'copy',
+                  // set bitrate
+                  '-b:a', '320k',
+                  // Define output file
+                  path,
+                ], {
+                  windowsHide: true,
+                  stdio: [
+                    /* Standard: stdin, stdout, stderr */
+                    'inherit', 'inherit', 'inherit',
+                    /* Custom: pipe:3, pipe:4, pipe:5 */
+                    'pipe', 'pipe', 'pipe',
+                  ],
+                });
+
+                ffmpegProcess.on('close', () => {
+                  try {
+                    setTimeout(() => {
+                      const paths = createPathsFromSong(song)
+                      for (const newPath of paths) {
+                        console.log('Finished downloading, moving to', newPath);
+                        fs.copyFileSync(path, newPath)
+                      }
+                      fs.unlinkSync(path)
+                      stats.downloaded++
+                      resolve()
+                    }, 1000)
+                  } catch (err) {
+                    console.error(err)
+                    stats.errors++
+                    resolve()
+                  }
+                });
+
+                audio.pipe(ffmpegProcess.stdio[4])
+              } catch (err) {
+                resolve()
+              }
+            })
+          })
         } else {
           // console.log('Already downloaded', song.title, createPathFromSong(song))
           stats.skipped++

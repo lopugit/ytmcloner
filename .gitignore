@@ -6,3 +6,5 @@ songs.json
 config.js
 .env
 .vscode
+cookie.js
+.DS_Store
