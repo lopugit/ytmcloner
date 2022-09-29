@@ -9,5 +9,5 @@ config.js
 cookie.js
 playlistNames.json
 .DS_Store
-
+secrets.js
 log/*.log
