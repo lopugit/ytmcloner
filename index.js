@@ -27,7 +27,7 @@ async function run() {
     const playlistItems = {}
     const songs = []
     const songMap = {}
-    for (const playlist of playlist) {
+    for (const playlist of playlists) {
       const scrapePlaylist = config.whitelist && config.whitelist.length ? config.whitelist.includes(playlist.snippet.title) : true
       if (scrapePlaylist) {
         const items = await getPlaylistItems(playlist)
