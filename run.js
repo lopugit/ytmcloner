@@ -73,13 +73,25 @@ async function run() {
       skipped: 0,
       private: 0,
       errors: 0,
-      total: songs.reduce((total, song) => total + song.playlists.length, 0)
+      total: songs.reduce((total, song) => total + song.playlists.length, 0),
+      sameCount: 0,
+      prevDownloaded: 0,
+      prevTotal: 1
     }
 
     const logInterval = setInterval(() => {
       const totalToDownload = ((stats.total - stats.skipped) - stats.errors) - stats.private
       console.log('Stats:', stats.downloaded, 'downloaded out of', totalToDownload, ',', stats.skipped, 'skipped,', stats.errors, 'errors,', stats.skipped + stats.downloaded, 'stored,', stats.private, 'private', stats.total, 'total songs')
-      if (stats.downloaded === totalToDownload) {
+
+      if (stats.prevDownloaded === stats.downloaded && stats.prevTotal === totalToDownload) {
+        stats.sameCount++
+      } else {
+        stats.prevDownloaded = stats.downloaded
+        stats.prevTotal = totalToDownload
+        stats.sameCount = 0
+      }
+
+      if (stats.sameCount > 30 || stats.downloaded === totalToDownload) {
         console.log('Finished downloading, exiting...')
         clearInterval(logInterval)
         // process.exit(0)
@@ -144,8 +156,8 @@ async function run() {
                   stdio: [
                     /* Standard: stdin, stdout, stderr */
                     'inherit', 'inherit', 'inherit',
-                    /* Custom: pipe:3, pipe:4, pipe:5 */
-                    'pipe', 'pipe', 'pipe',
+                    /* Custom: pipe:3, pipe:4 */
+                    'pipe', 'pipe',
                   ],
                 });
 
