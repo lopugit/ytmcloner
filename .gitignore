@@ -7,4 +7,5 @@ config.js
 .env
 .vscode
 cookie.js
+playlistNames.json
 .DS_Store

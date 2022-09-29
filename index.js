@@ -14,14 +14,20 @@ run()
 async function run() {
 
   if (!config.useDump) {
-    const playlists = await getPlaylists(process.env.CHANNEL_ID)
+    const playlists = await (await getPlaylists(config.channelId))
+      .filter(playlist => {
+        return config.useBlacklist && config.blacklist ? !config.blacklist.includes(playlist.snippet.title) : true
+      })
+      .filter(playlist => {
+        return config.useWhitelist && config.whitelist ? config.whitelist.includes(playlist.snippet.title) : true
+      })
 
     const playlistNames = playlists.map(playlist => playlist.snippet.title)
 
     const playlistItems = {}
     const songs = []
     const songMap = {}
-    for (const playlist of playlists) {
+    for (const playlist of playlist) {
       const scrapePlaylist = config.whitelist && config.whitelist.length ? config.whitelist.includes(playlist.snippet.title) : true
       if (scrapePlaylist) {
         const items = await getPlaylistItems(playlist)
@@ -42,6 +48,7 @@ async function run() {
       }
     }
 
+    fs.writeFileSync('playlistNames.json', JSON.stringify(playlistNames, null, 2))
     fs.writeFileSync('playlistItems.json', JSON.stringify(playlistItems, null, 2))
     fs.writeFileSync('songs.json', JSON.stringify(songs, null, 2))
     fs.writeFileSync('songMap.json', JSON.stringify(songMap, null, 2))
@@ -197,7 +204,7 @@ async function getPlaylistItems(playlist, items = [], pageToken = null) {
       playlistId: playlist.id,
       pageToken,
       maxResults: 100,
-      key: process.env.YOUTUBE_API_KEY,
+      key: config.youtubeApiKey,
     }
   }).catch(err => console.error(err))
 
@@ -220,7 +227,7 @@ async function getPlaylists(channelId, playlists = [], pageToken = null) {
       channelId,
       pageToken,
       maxResults: 100,
-      key: process.env.YOUTUBE_API_KEY,
+      key: config.youtubeApiKey,
     }
   }).catch(err => console.error(err))
 
