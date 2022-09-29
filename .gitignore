@@ -9,3 +9,5 @@ config.js
 cookie.js
 playlistNames.json
 .DS_Store
+
+log/*.log

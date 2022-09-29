@@ -1,6 +1,6 @@
-// const cookie = require('./cookie.js')
+// import cookie from './cookie.js'
 
-module.exports = {
+export default {
   youtubeApiKey: "key",
   channelId: "UCEvGiDUQ1Li-zaXJmEET9Yw",
   outputDir: '/Users/lopu/things/git/lopugit/ytmcloner/data/downloads',
