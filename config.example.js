@@ -6,6 +6,7 @@ export default {
   outputDir: '/Users/lopu/things/git/lopugit/ytmcloner/data/downloads',
   tmpDir: '/Users/lopu/things/git/lopugit/ytmcloner/data/tmp',
   useDump: false,
+  concurrency: 9,
   download: true,
   useBlacklist: false,
   useWhitelist: false,

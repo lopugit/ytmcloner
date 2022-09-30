@@ -101,7 +101,7 @@ async function run() {
       }
     }, 2500)
 
-    const queue = new promiseQueue(5, Infinity)
+    const queue = new promiseQueue(config.concurrency || 5, Infinity)
 
     for (const song of songs) {
 
