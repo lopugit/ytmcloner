@@ -64,6 +64,9 @@ async function run() {
     if (!fs.existsSync(config.outputDir)) {
       fs.mkdirSync(config.outputDir, { recursive: true })
     }
+    if (fs.existsSync(config.tmpDir)) {
+      fs.rmSync(config.tmpDir, { recursive: true, force: true })
+    }
     if (!fs.existsSync(config.tmpDir)) {
       fs.mkdirSync(config.tmpDir, { recursive: true })
     }
