@@ -151,7 +151,7 @@ async function run() {
                   // Keep encoding
                   '-c:v', 'copy',
                   // set bitrate
-                  '-b:a', '320k',
+                  '-b:a', config.quality || '320k',
                   // Define output file
                   path,
                 ], {
