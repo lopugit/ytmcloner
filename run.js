@@ -84,7 +84,7 @@ async function run() {
 
     const logInterval = setInterval(() => {
       const totalToDownload = ((stats.total - stats.skipped) - stats.errors) - stats.private
-      console.log('Stats:', stats.downloaded, 'downloaded out of', totalToDownload, ',', stats.skipped, 'skipped,', stats.errors, 'errors,', stats.skipped + stats.downloaded, 'stored,', stats.private, 'private', stats.total, 'total songs')
+      console.log('Stats:', stats.downloaded, 'downloaded out of', totalToDownload, ',', stats.skipped, 'skipped,', stats.errors, 'errors,', stats.skipped + stats.downloaded, 'stored,', stats.private, 'private', stats.total, 'total songs found')
 
       if (stats.prevDownloaded === stats.downloaded && stats.prevTotal === totalToDownload) {
         stats.sameCount++
