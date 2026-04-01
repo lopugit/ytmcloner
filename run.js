@@ -86,19 +86,21 @@ async function run() {
       const totalToDownload = ((stats.total - stats.skipped) - stats.errors) - stats.private
       console.log('Stats:', stats.downloaded, 'downloaded out of', totalToDownload, ',', stats.skipped, 'skipped,', stats.errors, 'errors,', stats.skipped + stats.downloaded, 'stored,', stats.private, 'private', stats.total, 'total songs found')
 
-      if (stats.prevDownloaded === stats.downloaded && stats.prevTotal === totalToDownload) {
-        stats.sameCount++
-      } else {
-        stats.prevDownloaded = stats.downloaded
-        stats.prevTotal = totalToDownload
-        stats.sameCount = 0
-      }
+			// uncommented for performance reasons
+      // if (stats.prevDownloaded === stats.downloaded && stats.prevTotal === totalToDownload) {
+      //   stats.sameCount++
+      // } else {
+      //   stats.prevDownloaded = stats.downloaded
+      //   stats.prevTotal = totalToDownload
+      //   stats.sameCount = 0
+      // }
 
-      if (stats.sameCount > 30 || stats.downloaded === totalToDownload) {
-        console.log('Finished downloading, exiting...')
-        clearInterval(logInterval)
-        // process.exit(0)
-      }
+// uncommented for performance reasons
+      // if (stats.sameCount > 30 || stats.downloaded === totalToDownload) {
+      //   console.log('Finished downloading, exiting...')
+      //   clearInterval(logInterval)
+      //   // process.exit(0)
+      // }
     }, 2500)
 
     const queue = new promiseQueue(config.concurrency || 5, Infinity)
@@ -224,7 +226,7 @@ function createPathFromSong(song, playlist) {
 
 async function getPlaylistItems(playlist, items = [], pageToken = null) {
 
-  console.log('Getting playlist items, playlist:', playlist.snippet.title, 'page:', pageToken)
+  console.log('Getting playlist items, playlist:', playlist.snippet.title, '. Page:', pageToken)
   const resp = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
     params: {
       part: 'snippet,contentDetails',
